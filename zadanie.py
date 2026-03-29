@@ -68,6 +68,25 @@ class Board:
             row_from_bottom = self.height - (self.zero_index // self.width)
             return (inv_count + row_from_bottom) % 2 == 1
 
+    def hamming(self):
+        distance = 0
+        for i in range(self.size):
+            if self.tiles[i] != self.zero_index and self.tiles[i] != self.goal[i]:
+                distance += 1
+        return distance
+
+    def manhattan(self):
+        distance = 0
+        for i in range(self.size):
+            value = self.tiles[i]
+            if value != 0:
+                row_now, col_now = value // self.width, value % self.width
+                target_index = value - 1
+                row_target, col_target = target_index // self.width, target_index % self.width
+
+                distance += abs(row_now - row_target) + abs(col_now - col_target)
+        return distance
+
     def is_complete(self):
         return self.tiles == self.goal
 
