@@ -1,6 +1,7 @@
 import random
 import time
 import sys
+import heapq
 
 class Board:
     MOVE_MAP = {
@@ -68,6 +69,25 @@ class Board:
             row_from_bottom = self.height - (self.zero_index // self.width)
             return (inv_count + row_from_bottom) % 2 == 1
 
+    def hamming(self):
+        distance = 0
+        for i in range(self.size):
+            if self.tiles[i] != self.zero_index and self.tiles[i] != self.goal[i]:
+                distance += 1
+        return distance
+
+    def manhattan(self):
+        distance = 0
+        for i in range(self.size):
+            value = self.tiles[i]
+            if value != 0:
+                row_now, col_now = value // self.width, value % self.width
+                target_index = value - 1
+                row_target, col_target = target_index // self.width, target_index % self.width
+
+                distance += abs(row_now - row_target) + abs(col_now - col_target)
+        return distance
+
     def is_complete(self):
         return self.tiles == self.goal
 
@@ -107,6 +127,76 @@ class Board:
             f.write(f"{max_depth}\n")
             f.write(f"{time_ms}\n")
 
+class A_star:
+    def __init__(self, board, heuristic, move_order="LRUD"):
+        self.visited_count = 0
+        self.processed_count = 0
+        self.max_reached_depth = 0
+        self.width = board.width
+        self.height = board.height
+        self.start = board
+        self.move_order = move_order
+        self.heuristic = heuristic
+        self.visited = {}
+        self.best_solution = None
+        self.best_depth = float('inf')
+
+        if self.heuristic == "manh":
+            self.h_func = lambda b: b.manhattan()
+        else:
+            self.h_func = lambda b: b.hamming()
+
+    def solve(self):
+        queue = []
+        tie_breaker_og = 0
+
+        start_time = time.time()
+
+        heapq.heappush(queue, (0 + self.h_func(self.start), tie_breaker_og, self.start, 0, None, []))
+
+
+        while queue:
+            f_cost, tie_breaker, board, depth_, prev_zero, moves_seq = heapq.heappop(queue)
+            self.max_reached_depth = max(self.max_reached_depth, depth_)
+            state = bytes(board.tiles)
+
+            if state in self.visited and self.visited[state] <= depth_:
+                continue
+
+            self.visited[state] = depth_
+            self.visited_count += 1
+
+            if board.is_complete() == 1:
+                self.best_solution = moves_seq
+                self.best_depth = depth_
+                break
+
+            zero = board.zero_index
+            for move in self.move_order:
+                n_index = Board.MOVE_MAP[move](zero, board.width, board.height)
+                if n_index is None or n_index == prev_zero:
+                    continue
+
+                new_board = Board(board.width, board.height)
+                new_board.load_from_list(board.tiles)
+                new_board.swap(zero, n_index)
+
+                tie_breaker_og += 1
+                self.processed_count += 1
+                heapq.heappush(queue, (depth_ + 1 + self.h_func(new_board), tie_breaker_og, new_board, depth_ + 1, zero, moves_seq + [move]))
+
+
+        end_time = time.time()
+        stats = {
+            "visited": self.visited_count,
+            "processed": self.processed_count,
+            "max_depth": self.max_reached_depth,
+            "time_ms": round((end_time - start_time) * 1000, 3)
+        }
+
+        if self.best_solution is None:
+            return None, -1, stats
+        return self.best_solution, self.best_depth, stats
 
 class DFS:
     def __init__(self, board, move_order="LRUD", max_depth=50):
@@ -238,19 +328,33 @@ class BFS:
 
 if __name__ == "__main__":
     if len(sys.argv) != 6:
-        print("Usage: program dfs <move_order/heuristics> <input_file> <solution_file> <stats_file>")
+        print("Usage: program strategy <move_order/heuristics> <input_file> <solution_file> <stats_file>")
         exit(1)
 
-    strategy, move_order, input_file, sol_file, stats_file = sys.argv[1:6]
+    strategy = sys.argv[1]
+    param = sys.argv[2]
+    input_file = sys.argv[3]
+    sol_file = sys.argv[4]
+    stats_file = sys.argv[5]
 
-    board = Board.from_file(input_file)
+    try:
+        board = Board.from_file(input_file)
+    except FileNotFoundError:
+        print(f"Error: File {input_file} not found.")
+        exit(1)
 
     if strategy == "dfs":
-        solver = DFS(board, move_order=move_order, max_depth=50)
+        solver = DFS(board, move_order=param, max_depth=20)
+        solution, depth_, stats_ = solver.solve()
+    elif strategy == "bfs":
+        solver = BFS(board, move_order=param)
+        solution, depth_, stats_ = solver.solve()
+    elif strategy == "astr":
+        solver = A_star(board, heuristic=param)
         solution, depth_, stats_ = solver.solve()
     else:
-        solver = BFS(board, move_order=move_order)
-        solution, depth_, stats_ = solver.solve()
+        print(f"Unknown strategy: {strategy}")
+        exit(1)
 
     Board.save_solution(sol_file, solution, depth_)
     Board.save_stats(
