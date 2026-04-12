@@ -1,0 +1,6 @@
+.idea/
+*.odt
+*.ods
+*.pdf
+.analiza/
+__pycache__/
