@@ -1,7 +1,6 @@
 from collections import deque
 import time
-import Board
-
+from Board import Board
 
 class BFS:
     def __init__(self, board, move_order="LRUD"):
@@ -11,13 +10,13 @@ class BFS:
         self.size = board.size
 
         self.move_order = move_order
-        self.move_map = Board.Board.MOVE_MAP
+        self.move_map = Board.MOVE_MAP
 
         self.visited_count = 0
         self.processed_count = 0
         self.max_reached_depth = 0
 
-        self.goal = tuple(range(1, self.size)) + (0,)
+        self.goal = board.goal
 
     def solve(self):
         if not self.start.is_solvable():
@@ -42,7 +41,7 @@ class BFS:
         width = self.width
         height = self.height
         move_map = self.move_map
-        goal = self.goal
+        goal = tuple(range(1, self.size)) + (0,)
 
         found = None
 

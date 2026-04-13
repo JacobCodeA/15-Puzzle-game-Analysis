@@ -1,7 +1,6 @@
 import time
 import heapq
-import Board
-
+from Board import Board
 
 class ASTAR:
     def __init__(self, board, heuristic="manh", move_order="LRUD"):
@@ -11,7 +10,7 @@ class ASTAR:
         self.size = board.size
 
         self.move_order = move_order
-        self.move_map = Board.Board.MOVE_MAP
+        self.move_map = Board.MOVE_MAP
 
         self.visited_count = 0
         self.processed_count = 0

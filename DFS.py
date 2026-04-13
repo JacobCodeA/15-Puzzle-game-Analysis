@@ -1,5 +1,5 @@
 import time
-import Board
+from Board import Board
 
 class DFS:
     def __init__(self, board, move_order="LRUD", max_depth=50):
@@ -19,7 +19,7 @@ class DFS:
         self.max_reached_depth = 0
 
         self.goal = tuple(range(1, self.size)) + (0,)
-        self.move_map = Board.Board.MOVE_MAP
+        self.move_map = Board.MOVE_MAP
 
         self.visited = set()
         self.path = []
